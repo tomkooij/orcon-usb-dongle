@@ -58,6 +58,8 @@ enum RFSTATE
 #define PAIR_TIME_OUT   5000   // ms
 #define RX_TIME_OUT     300    // ms
 
+#define RX_BUFFER_LENGTH  64  // bytes max frame
+
 /**
  * Working modes
  */
@@ -309,6 +311,9 @@ class CC1101
 		uint8_t temperature;		
 	};
 
+  uint8_t rx_buffer[RX_BUFFER_LENGTH+1];
+
+
 	datapoints orcon_state;
 	
     CC1101(void);
@@ -327,7 +332,8 @@ class CC1101
     void setPowerDownState();
     void setRxState(void);
     void setTxState(void);
-
+   bool CC1101::listen_frame(unsigned long timeout);
+   void CC1101::print_rx_buffer(void);
 };
 
 #endif

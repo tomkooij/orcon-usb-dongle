@@ -184,64 +184,114 @@ uint8_t CC1101::calc_crc(uint8_t dataframe[], uint8_t len)
 	return crc_calc;
 }
 
+bool CC1101::listen_frame(unsigned long timeout)
+{
+  bool rf15_frame_valid = false;
+  unsigned long previousMillis = 0;
+  unsigned long currentMillis = 0;
+  bool timeout_flag = false;
+
+  previousMillis = millis();
+
+  while (!timeout_flag) // wait till both frames received, or timeout
+  {
+    // Handle timeout
+    currentMillis = millis();
+    if (currentMillis - previousMillis > timeout)
+      timeout_flag = true;
+    else
+    {
+      while (Serial1.available() > 0)
+      {
+        // Fifo buffer
+        for (uint8_t i = 0; i < RX_BUFFER_LENGTH; i++)
+          rx_buffer[i] = rx_buffer[i + 1];
+        rx_buffer[RX_BUFFER_LENGTH] = Serial1.read();
+
+        // Check for frame header at start of buffer
+        if ((rx_buffer[0] == 0x00) && (rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55))
+        {
+          return true; 
+        }
+      }
+    }
+  }
+
+  return false;
+
+}
+
+void CC1101::print_rx_buffer(void) {
+    Serial.println("> RF Buffer: ");
+    for(auto i=0; i<RX_BUFFER_LENGTH+1; i++){
+      Serial.print(" ");
+      Serial.print(CC1101::rx_buffer[i], HEX);
+    }
+    Serial.print("\n");
+}
+
 bool CC1101::clone_mode(void)
 {
-	uint8_t rx_buffer[33];
-	bool rf15_frame_valid = false;
-	unsigned long previousMillis = 0;
-	unsigned long currentMillis = 0;
-	bool pair_timeout_flag = false;
+  //uint8_t rx_buffer[33];
+  bool rf15_frame_valid = false;
+  unsigned long previousMillis = 0;
+  unsigned long currentMillis = 0;
+  bool pair_timeout_flag = false;
 
-	previousMillis = millis();
+  previousMillis = millis();
 
-	while (!rf15_frame_valid && !pair_timeout_flag)	// wait till both frames received, or timeout
-	{
-		// Handle timeout
-		currentMillis = millis();
-		if (currentMillis - previousMillis > PAIR_TIME_OUT)
-			pair_timeout_flag = true;
-		else
-		{
+  while (!rf15_frame_valid && !pair_timeout_flag) // wait till both frames received, or timeout
+  {
+    // Handle timeout
+    currentMillis = millis();
+    if (currentMillis - previousMillis > PAIR_TIME_OUT)
+      pair_timeout_flag = true;
+    else
+    {
 
-			while (Serial1.available() > 0)
-			{
-			 	// Fifo buffer
-				for (uint8_t i = 0; i < 32; i++)
-					rx_buffer[i] = rx_buffer[i + 1];
-				rx_buffer[32] = Serial1.read();
+      while (Serial1.available() > 0)
+      {
+        // Fifo buffer
+        for (uint8_t i = 0; i < 32; i++)
+          rx_buffer[i] = rx_buffer[i + 1];
+        rx_buffer[32] = Serial1.read();
 
-				// Check for frame validity	  
-				if ((rx_buffer[0] == 0x00) && (rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55) && (rx_buffer[3] == 0x53) && (rx_buffer[32] == 0x35))
-				{
-					if ((rx_buffer[4] == 0xA9) && (rx_buffer[5] == 0x5A))	// RF15 frame (write + ADDR0+ ADDR1)
-					{
-						uint8_t payload_buff[28];
-						uint8_t x = 0;
-						for (uint8_t i = 4; i < 32; i++)
-						{
-							payload_buff[x] = rx_buffer[i];
-							x++;
-						}
+        // Check for frame validity   
+//        if ((rx_buffer[0] == 0x00) && (rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55) && (rx_buffer[3] == 0x53)) && (rx_buffer[32] == 0x35)) 
+        if ((rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55) && (rx_buffer[3] == 0x53))
 
-						uint8_t rx_payload[14];
-						manchester_decode(payload_buff, 28, rx_payload);
+        {
+          print_rxbuffer();
+          if ((rx_buffer[4] == 0xA9) && (rx_buffer[5] == 0x5A)) // RF15 frame (write + ADDR0+ ADDR1)
+          {
+            uint8_t payload_buff[28];
+            uint8_t x = 0;
+            for (uint8_t i = 4; i < 32; i++)
+            {
+              payload_buff[x] = rx_buffer[i];
+              x++;
+            }
 
-						if (calc_crc(rx_payload, 14) == rx_payload[13])
-						{
+            uint8_t rx_payload[14];
+            manchester_decode(payload_buff, 28, rx_payload);
+            print_buffer(rx_payload, 28);
 
-							// Clone and store RF15 address in EEPROM
-							for (uint8_t i = 1; i < 7; i++)
-								EEPROM.update(i - 1, rx_payload[i]);
+            if (calc_crc(rx_payload, 14) == rx_payload[13])
+            {
 
-							rf15_frame_valid = true;
-						}
-					}
-				}
-			}
-		}
-	}
+              // Clone and store RF15 address in EEPROM
+              for (uint8_t i = 1; i < 7; i++)
+                EEPROM.update(i - 1, rx_payload[i]);
 
-	return rf15_frame_valid;
+              rf15_frame_valid = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return rf15_frame_valid;
 
 }
 
