@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include "errors.h"
 #include "transcoder.h"
 
 #define S_HEADER     0
@@ -15,6 +14,16 @@
 #define S_CHECKSUM   9
 #define S_COMPLETE  10
 #define S_ERROR     11
+
+//errors.h
+#define ERR_NONE                       1
+#define ERR_BAD_START_BIT              2
+#define ERR_BAD_STOP_BIT               3
+#define ERR_UNEXPECTED_START_OF_FRAME  4
+#define ERR_UNEXPECTED_END_OF_FRAME    5
+#define ERR_MANCHESTER_ENCODING        6
+
+
 
 static const uint8_t HEADER_FLAGS[16] = {
   0x0F, 0x0C, 0x0D, 0x0B,
@@ -58,29 +67,8 @@ void transcoder_accept_inbound_byte(uint8_t b, uint8_t status) {
   static uint8_t flags;
   static char str[12];
 
-  if (status != 0) {
-    if (state != S_COMPLETE || status != ERR_NONE) {
-      switch (status) {
-        case ERR_BAD_START_BIT:
-          write_str("\x09*ERR_BAD_START_BIT*");
-          break;
-        case ERR_BAD_STOP_BIT:
-          write_str("\x09*ERR_BAD_STOP_BIT*");
-          break;
-        case ERR_UNEXPECTED_START_OF_FRAME:
-          write_str("\x09*ERR_UNEXPECTED_START_OF_FRAME*");
-          break;
-        case ERR_UNEXPECTED_END_OF_FRAME:
-          write_str("\x09*ERR_UNEXPECTED_END_OF_FRAME*");
-          break;
-        case ERR_MANCHESTER_ENCODING:
-          write_str("\x09*ERR_MANCHESTER_ENCODING*");
-          break;
-        default:
-          write_str("\x09*ERR_UNKNOWN*");
-          break;
-      }
-    }
+  if (status == 99) {
+    //reset_transcoder
     write_str("\r\n");
     state = S_HEADER;
     return;

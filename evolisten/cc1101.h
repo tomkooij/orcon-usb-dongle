@@ -296,8 +296,8 @@ class CC1101
     void writeBurstReg(uint8_t regAddr, uint8_t* buffer, uint8_t len);
     void readBurstReg(uint8_t * buffer, uint8_t regAddr, uint8_t len);
     void setRegsFromEeprom(void);
-	uint8_t *manchester_decode(uint8_t rx_buff[], uint8_t len, uint8_t *rx_payload);
 	uint8_t *manchester_encode(uint8_t tx_buff[], uint8_t len, uint8_t *test_arr);
+  uint8_t *manchester_decode(uint8_t rx_buff[], uint8_t len, uint8_t *rx_payload);
 	bool transmit_data(uint8_t payload[], uint8_t len);
 	uint8_t calc_crc(uint8_t dataframe[], uint8_t len);
 	
@@ -334,6 +334,7 @@ class CC1101
     void setTxState(void);
    bool CC1101::listen_frame(unsigned long timeout);
    void CC1101::print_rx_buffer(void);
+
 };
 
 #endif

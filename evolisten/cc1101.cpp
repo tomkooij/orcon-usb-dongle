@@ -186,6 +186,7 @@ uint8_t CC1101::calc_crc(uint8_t dataframe[], uint8_t len)
 
 bool CC1101::listen_frame(unsigned long timeout)
 {
+  // keep filler rx_buffer until we see the frame header 00 33 55
   bool rf15_frame_valid = false;
   unsigned long previousMillis = 0;
   unsigned long currentMillis = 0;
@@ -209,16 +210,13 @@ bool CC1101::listen_frame(unsigned long timeout)
         rx_buffer[RX_BUFFER_LENGTH] = Serial1.read();
 
         // Check for frame header at start of buffer
-        if ((rx_buffer[0] == 0x00) && (rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55))
-        {
+        if ((rx_buffer[0] == 0x00) && (rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55) && (rx_buffer[3] == 0x53))                       
           return true; 
-        }
+        
       }
     }
   }
-
   return false;
-
 }
 
 void CC1101::print_rx_buffer(void) {
@@ -261,7 +259,6 @@ bool CC1101::clone_mode(void)
         if ((rx_buffer[1] == 0x33) && (rx_buffer[2] == 0x55) && (rx_buffer[3] == 0x53))
 
         {
-          print_rxbuffer();
           if ((rx_buffer[4] == 0xA9) && (rx_buffer[5] == 0x5A)) // RF15 frame (write + ADDR0+ ADDR1)
           {
             uint8_t payload_buff[28];
@@ -274,7 +271,6 @@ bool CC1101::clone_mode(void)
 
             uint8_t rx_payload[14];
             manchester_decode(payload_buff, 28, rx_payload);
-            print_buffer(rx_payload, 28);
 
             if (calc_crc(rx_payload, 14) == rx_payload[13])
             {

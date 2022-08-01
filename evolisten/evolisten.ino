@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "cc1101.h"
+#include "transcoder.h"
+
 #define REQUEST_RATE                2500  // ms
 #define ONBOARD_LED                 7
 #define LED_FLASH_TIME              50  // ms
@@ -25,6 +27,31 @@ void led_flash_once_ms(int blink_time)
   digitalWrite(ONBOARD_LED, HIGH); // RADIO LED OFF   
 }
 
+
+
+void tty_write_str(char *s) {
+  //while (*s) tty_write_char(*s++);
+  Serial.print(s);
+}
+
+
+uint8_t manchester_decode(uint8_t a, uint8_t b) {
+    uint8_t mch_lookup[16] = { 0xAA, 0xA9, 0xA6, 0xA5, 0x9A, 0x99, 0x96, 0x95, 0x6A, 0x69, 0x66, 0x65, 0x5A, 0x59, 0x56, 0x55 };
+    uint8_t out;
+    
+    for (uint8_t x = 0; x < 16; x++)
+    {
+      if (b == mch_lookup[x])
+        out = x;
+    }
+  for (uint8_t x = 0; x < 16; x++)
+    {
+      if (a == mch_lookup[x])
+        out |= x << 4;
+    }
+  return out;
+}
+
 //******************************************************************************************//
 //                                                                                          //
 //                        Init                                                              //
@@ -40,6 +67,8 @@ void setup()
   
   Serial1.begin(38400); // used for transmitting data to CC1101
   while(!Serial1);
+
+  transcoder_init(&tty_write_str, &tty_write_str);
 }
 
 //******************************************************************************************//
@@ -77,13 +106,36 @@ void loop()
       case (LISTEN):
         radio.set_rx_mode();
 
-        Serial.println("> Listening to evohome frames");
-        if (radio.listen_frame(5000)) {
-          Serial.println("Frame: ");
-          radio.print_rx_buffer();
+        //Serial.println("\r\n> Listening to evohome frames");
+        int len_frame = 0;
+        if (radio.listen_frame(45000)) {
+          
+          //Serial.println("\r\nFrame: ");
+          //radio.print_rx_buffer();
+          
+          transcoder_accept_inbound_byte(0, 99); // reset transcoder (hack)
+          
+          uint8_t payload_byte;
+          uint8_t a, b;
+         for(int i=4; i<64; i++) {
+            // frame starts with header: 00 33 55 53
+            // skip first 4 bytes
+            if (radio.rx_buffer[i] == 35) break;  // end of frame
+            
+            // manchester decode pair of two bytes
+            a = radio.rx_buffer[i];
+            b = radio.rx_buffer[i+1];
+            payload_byte = manchester_decode(a, b);
+            i++;
+
+            // transcode payload.
+            transcoder_accept_inbound_byte(payload_byte, 0);
+          }
+          
+          
         } else {
-          Serial.println("> Timeout !! retry ");
-          radio.print_rx_buffer();
+          Serial.print(".");
+          //radio.print_rx_buffer();
         } 
         delay(1000);
         break;
