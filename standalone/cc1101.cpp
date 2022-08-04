@@ -376,7 +376,14 @@ bool CC1101::transmit_data(uint8_t payload[], uint8_t len)
 
 						uint8_t dataframe_decoded[frame_decoded_lenght];
 						manchester_decode(dataframe_encoded, rx_frame_lenght, dataframe_decoded);
-
+            /*Serial.print("> Mandecoded frame: ");
+            for (uint8_t i = 0; i < frame_decoded_lenght+1; i++)
+{
+  Serial.print(dataframe_decoded[i], HEX);
+  Serial.print(" ");
+}
+Serial.print("\n");
+*/
 						// CRC check
 						if (calc_crc(dataframe_decoded, frame_decoded_lenght) == dataframe_decoded[frame_decoded_lenght - 1])
 						{
@@ -385,27 +392,43 @@ bool CC1101::transmit_data(uint8_t payload[], uint8_t len)
 							for (uint8_t i = 4; i < 7; i++)
 							{
 								if (dataframe_decoded[i] != EEPROM.read(i - 1))
-									orcon_frame_valid = false;
+                  {Serial.println("WRONG ADDR");
+									orcon_frame_valid = false;}
 							}
 
 							if (orcon_frame_valid)	// Update states
 							{
-								orcon_state.fan_speed = dataframe_decoded[12];
+								orcon_state.fan_speed = dataframe_decoded[13];
+                Serial.print("Dataframe_decoded[13]: ");
+                Serial.println(orcon_state.fan_speed);
 							}
 							else
 							{
-								Serial.println("> Dataframe error!");
+								Serial.println("> Dataframe error! transmit_data()");
+               for (uint8_t i = 0; i < buff_lenght - 1; i++)
+{
+  Serial.print(rx_buffer[i], HEX);
+  Serial.print(" ");
+}
+Serial.println("");
 							}
 						}
 						else
 						{
-							Serial.println("> CRC Error!");
+							Serial.println("> CRC Error! transmit_data()");
+
+for (uint8_t i = 0; i < buff_lenght - 1; i++)
+{
+  Serial.print(rx_buffer[i], HEX);
+  Serial.print(" ");
+}
+Serial.println("");
 						}
 					}
 				}
 				else
 				{
-					if ((rx_buffer[99] == 0x6A) && (rx_buffer[98] == 0xA9) && (rx_buffer[97] == 0x53) && (rx_buffer[96] == 0x55) && (rx_buffer[95] == 0x33) && (rx_buffer[94] == 0x00))
+					if ((rx_buffer[99] == 0x66) && (rx_buffer[98] == 0xA9) && (rx_buffer[97] == 0x53) && (rx_buffer[96] == 0x55) && (rx_buffer[95] == 0x33) && (rx_buffer[94] == 0x00))
 						header_detected_flag = true;
 				}
 			}
@@ -416,7 +439,7 @@ bool CC1101::transmit_data(uint8_t payload[], uint8_t len)
 	cmdStrobe(CC1101_SIDLE);
 	writeReg(CC1101_IOCFG0, CC1101_DEFVAL_IOCFG0);
 	setPowerDownState();
-
+  Serial.println("return orcon_frame_valid");
 	return orcon_frame_valid;
 }
 

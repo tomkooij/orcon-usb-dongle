@@ -383,7 +383,10 @@ bool CC1101::transmit_data(uint8_t payload[], uint8_t len)
 	// Config GDO0 to ouput
 	cmdStrobe(CC1101_SIDLE);
 	setRxState();
-
+ 
+  // HACK!!!
+  return;
+  
 	// Read serial data, variable frame lenght
 	previousMillis = millis();
 
