@@ -106,39 +106,39 @@ void loop()
       case (LISTEN):
         radio.set_rx_mode();
 
-        //Serial.println("\r\n> Listening to evohome frames");
-        int len_frame = 0;
-        if (radio.listen_frame(45000)) {
-          
-          //Serial.println("\r\nFrame: ");
-          //radio.print_rx_buffer();
-          
-          transcoder_accept_inbound_byte(0, 99); // reset transcoder (hack)
-          
-          uint8_t payload_byte;
-          uint8_t a, b;
-         for(int i=4; i<64; i++) {
-            // frame starts with header: 00 33 55 53
-            // skip first 4 bytes
-            if (radio.rx_buffer[i] == 35) break;  // end of frame
+        while(1) { //Serial.println("\r\n> Listening to evohome frames");
+          int len_frame = 0;
+          if (radio.listen_frame(15000)) {
             
-            // manchester decode pair of two bytes
-            a = radio.rx_buffer[i];
-            b = radio.rx_buffer[i+1];
-            payload_byte = manchester_decode(a, b);
-            i++;
-
-            // transcode payload.
-            transcoder_accept_inbound_byte(payload_byte, 0);
-          }
+            //Serial.println("\r\nFrame: ");
+            //radio.print_rx_buffer();
+            
+            transcoder_accept_inbound_byte(0, 99); // reset transcoder (hack)
+            
+            uint8_t payload_byte;
+            uint8_t a, b;
+           for(int i=4; i<64; i++) {
+              // frame starts with header: 00 33 55 53
+              // skip first 4 bytes
+              if (radio.rx_buffer[i] == 0x35) break;  // end of frame
+              
+              // manchester decode pair of two bytes
+              a = radio.rx_buffer[i];
+              b = radio.rx_buffer[i+1];
+              payload_byte = manchester_decode(a, b);
+              i++;
+  
+              // transcode payload.
+              transcoder_accept_inbound_byte(payload_byte, 0);
+            }
+            
+            
+          } else {
+            Serial.print(".");
+            //radio.print_rx_buffer();
+          } 
           
-          
-        } else {
-          Serial.print(".");
-          //radio.print_rx_buffer();
-        } 
-        delay(1000);
-        break;
+                  } 
     }
   }
 }
