@@ -80,6 +80,9 @@ void loop()
 {
   module_states dongle_state = JUST_BOOTED;
   int prev_speed_lvl = 0;
+  char rssi_str[] = "---";
+
+  int8_t rssi;
   
   while (1)
   {
@@ -104,9 +107,7 @@ void loop()
         break;
 
       case (LISTEN):
-        Serial.println("\n> request_orcon_state() SEND 31E0 only");
-          radio.request_orcon_state();
-          Serial.println("> Back to recieving");
+        
         radio.set_rx_mode();
          
         while(1) { 
@@ -115,9 +116,15 @@ void loop()
           int len_frame = 0;
           if (radio.listen_frame(15000)) {
             
-            Serial.println("\nFrame: ");
-            radio.print_rx_buffer();
-            
+            //Serial.println("\nFrame: ");
+            //radio.print_rx_buffer();
+            rssi = (int8_t )radio.readReg(CC1101_RSSI, CC1101_STATUS_REGISTER);
+            rssi = rssi/2 - 74;
+            rssi = -rssi;
+            sprintf(rssi_str, "%03u", rssi);
+            Serial.println();
+            Serial.print(rssi_str);
+                      
             transcoder_accept_inbound_byte(0, 99); // reset transcoder (hack)
             
            uint8_t payload_byte;

@@ -69,7 +69,7 @@ void transcoder_accept_inbound_byte(uint8_t b, uint8_t status) {
 
   if (status == 99) {
     //reset_transcoder
-    write_str("\r\n");
+    //write_str("\r\n");
     state = S_HEADER;
     return;
   }
@@ -94,10 +94,10 @@ void transcoder_accept_inbound_byte(uint8_t b, uint8_t status) {
     multi_bytes = 0;
     minibuf.word32 = 0;
 
-    if (is_information(flags)) { write_str("---  I --- "); return; }
-    if (is_request(flags))     { write_str("--- RQ --- "); return; }
-    if (is_response(flags))    { write_str("--- RP --- "); return; }
-    if (is_write(flags))       { write_str("---  W --- "); return; }
+    if (is_information(flags)) { write_str("  I --- "); return; }
+    if (is_request(flags))     { write_str(" RQ --- "); return; }
+    if (is_response(flags))    { write_str(" RP --- "); return; }
+    if (is_write(flags))       { write_str("  W --- "); return; }
 
     write_str("\x09*HDR*");
     state = S_ERROR;
